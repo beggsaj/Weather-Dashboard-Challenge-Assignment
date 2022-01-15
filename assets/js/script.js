@@ -1,21 +1,23 @@
-function initPage() {
+function pageLoad() {
+    //establish initial variables
     const inputEl = document.getElementById('city-input')
     const searchEl = document.getElementById('search-button')
     const clearEl = document.getElementById('clear-history')
     const nameEl = document.getElementById('city-name')
-    const currentPicEl = document.getElementById('current-pic')
+    const currentImgEl = document.getElementById('current-pic')
     const currentTempEl = document.getElementById('temperature')
     const currentHumidityEl = document.getElementById('humidity')
     const currentWindEl = document.getElementById('wind-speed')
     const currentUVEl = document.getElementById('UV-index')
     const historyEl = document.getElementById("history")
-    let searchHistory = JSON.parse(localStorage.getItem("search")) || []
-    console.log(searchHistory)
+    let pastResults = JSON.parse(localStorage.getItem("search")) || []
+    console.log(pastResults)
 
-
+    //input APIkey once
     const APIKey = '5f9802b3552d7171cdc282d3313390c8'
 
-    function getWeather(cityName) {
+    //function to pull in the weather based on city name
+    function fetchWeather(cityName) {
         let queryURL = "https://api.openweathermap.org/data/2.5/weather?q=" + cityName + "&appid=" + APIKey
         axios.get(queryURL)
             .then(function (response) {
@@ -27,8 +29,8 @@ function initPage() {
                 const year = currentDate.getFullYear()
                 nameEl.innerHTML = response.data.name + " (" + month + "/" + day + "/" + year + ") "
                 let weatherPic = response.data.weather[0].icon
-                currentPicEl.setAttribute("src", "https://openweathermap.org/img/wn/" + weatherPic + "@2x.png")
-                currentPicEl.setAttribute("alt", response.data.weather[0].description)
+                currentImgEl.setAttribute("src", "https://openweathermap.org/img/wn/" + weatherPic + "@2x.png")
+                currentImgEl.setAttribute("alt", response.data.weather[0].description)
                 currentTempEl.innerHTML = "Temperature: " + kelvin2far(response.data.main.temp) + " &#176F"
                 currentHumidityEl.innerHTML = "Humidity: " + response.data.main.humidity + "%"
                 currentWindEl.innerHTML = "Wind Speed: " + response.data.wind.speed + " MPH"
@@ -43,7 +45,8 @@ function initPage() {
                         currentUVEl.innerHTML = 'UV Index:'
                         currentUVEl.append(UVIndex)
                     })
-                let cityID = response.data.cityID
+                let cityID = response.data.id
+                //get forecast based on the ID of the city
                 let forecastQueryURL = "https://api.openweathermap.org/data/2.5/forecast?id=" + cityID + "&appid=" + APIKey
                 axios.get(forecastQueryURL)
                     .then(function (response) {
@@ -65,9 +68,9 @@ function initPage() {
                             forecastWeatherEl.setAttribute("alt", response.data.list[forecastIndex].weather[0].description)
                             forecastEls[i].append(forecastWeatherEl)
                             const forecastTempEl = document.createElement('p')
-                            forecastTempEl.innerHTML = "Temp: " + k2f(response.data.list[forecastIndex].main.temp) + " &#176F"
+                            forecastTempEl.innerHTML = "Temp: " + kelvin2far(response.data.list[forecastIndex].main.temp) + " &#176F"
                             forecastEls[i].append(forecastTempEl)
-                            const forecastHumidityEl = document.createElement(p)
+                            const forecastHumidityEl = document.createElement('p')
                             forecastHumidityEl.innerHTML = "Humidity: " + response.data.list[forecastIndex].main.humidity + "%"
                             forecastEls[i].append(forecastHumidityEl)
                         }
@@ -77,41 +80,41 @@ function initPage() {
 
     searchEl.addEventListener('click', function () {
         const searchTerm = inputEl.value
-        getWeather(searchTerm)
-        searchHistory.push(searchTerm)
-        localStorage.setItem('search', JSON.stringify(searchHistory))
-        renderSearchHistory()
+        fetchWeather(searchTerm)
+        pastResults.push(searchTerm)
+        localStorage.setItem('search', JSON.stringify(pastResults))
+        pullpastResults()
     })
 
     clearEl.addEventListener('click', function () {
-        searchHistory = []
-        renderSearchHistory()
+        pastResults = []
+        pullpastResults()
     })
 
     function kelvin2far(K) {
         return Math.floor((K - 273.15) * 1.8 + 32)
     }
 
-    function renderSearchHistory() {
+    function pullpastResults() {
         historyEl.innerHTML = ''
-        for (let i = 0; i < searchHistory.length; i++) {
+        for (let i = 0; i < pastResults.length; i++) {
             const historyItem = document.createElement('input')
             historyItem.setAttribute('type', 'text')
             historyItem.setAttribute('readonly', true)
             historyItem.setAttribute('class', 'form-control d-block bg-white')
-            historyItem.setAttribute('value', searchHistory[i])
+            historyItem.setAttribute('value', pastResults[i])
             historyItem.addEventListener('click', function () {
-                getWeather(historyItem.value)
+                fetchWeather(historyItem.value)
             })
             historyEl.append(historyItem)
         }
     }
 
-    renderSearchHistory()
-    if (searchHistory.length > 0) {
-        getWeather(searchHistory[searchHistory.length - 1])
+    pullpastResults()
+    if (pastResults.length > 0) {
+        fetchWeather(pastResults[pastResults.length - 1])
     }
 
 
 }
-initPage();
+pageLoad();
